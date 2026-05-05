@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Core user information including roles and academic details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "faculty", "admin"] },
+        "department": { "type": "string" },
+        "semester": { "type": "string" },
+        "avatar": { "type": "string" },
+        "attendance": { "type": "number", "description": "Overall attendance percentage" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "description": "Daily attendance for a specific subject.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["present", "absent"] },
+        "facultyId": { "type": "string" }
+      },
+      "required": ["userId", "subjectId", "date", "status"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Academic subjects offered in the campus.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "department": { "type": "string" },
+        "semester": { "type": "string" },
+        "facultyId": { "type": "string" }
+      },
+      "required": ["id", "name", "code", "department"]
+    },
+    "Timetable": {
+      "title": "Timetable",
+      "description": "Schedule for a department and semester.",
+      "type": "object",
+      "properties": {
+        "department": { "type": "string" },
+        "semester": { "type": "string" },
+        "schedule": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "string" },
+              "slot": { "type": "string" },
+              "subjectId": { "type": "string" },
+              "facultyId": { "type": "string" },
+              "room": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["department", "semester", "schedule"]
+    },
+    "LeaveRequest": {
+      "title": "Leave Request",
+      "description": "Requests for leave from students or faculty.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "reason": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "role": { "type": "string" }
+      },
+      "required": ["userId", "reason", "startDate", "endDate", "status"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Campus-wide updates and events.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["news", "event", "placement"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "authorId": { "type": "string" }
+      },
+      "required": ["title", "content", "type", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "AI Assistant chat history.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "mode": { "type": "string", "enum": ["learning", "control"] }
+      },
+      "required": ["userId", "content", "role", "timestamp"]
+    },
+    "CourseMaterial": {
+      "title": "Course Material",
+      "description": "Uploaded study materials like PDFs, notes, and PPTs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string", "description": "Textual content or summary for AI grounding" },
+        "type": { "type": "string", "enum": ["pdf", "ppt", "notes"] },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "subjectId", "title", "content", "uploadedBy"]
+    },
+    "Syllabus": {
+      "title": "Syllabus",
+      "description": "The detailed curriculum for a subject.",
+      "type": "object",
+      "properties": {
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "modules": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "objectives": { "type": "string" }
+      },
+      "required": ["subjectId", "modules"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/attendance": {
+      "schema": "AttendanceRecord",
+      "description": "Global attendance records"
+    },
+    "/subjects": {
+      "schema": "Subject",
+      "description": "Subject definitions"
+    },
+    "/timetables": {
+      "schema": "Timetable",
+      "description": "Departmental schedules"
+    },
+    "/leave_requests": {
+      "schema": "LeaveRequest",
+      "description": "Leave applications"
+    },
+    "/announcements": {
+      "schema": "Announcement",
+      "description": "Campus announcements"
+    },
+    "/users/{userId}/chats": {
+      "schema": "ChatMessage",
+      "description": "User's AI chat history"
+    },
+    "/materials": {
+      "schema": "CourseMaterial",
+      "description": "Academic study materials"
+    },
+    "/syllabus": {
+      "schema": "Syllabus",
+      "description": "Subject curricula"
+    }
+  }
+}

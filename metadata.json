@@ -1,0 +1,14 @@
+{
+  "name": "CampusAI",
+  "description": "A smart AI-powered college management ecosystem with voice control, role-based dashboards, and automated timetable generation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI Assistant",
+    "Voice Control",
+    "Admin/Faculty/Student Dashboards",
+    "Timetable Generator"
+  ]
+}

@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isAdmin() { return isSignedIn() && getUserRole() == 'admin'; }
+    function isFaculty() { return isSignedIn() && getUserRole() == 'faculty'; }
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin() || isFaculty());
+      allow list: if isAdmin() || isFaculty();
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidUser(incoming())
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'department', 'semester', 'avatar', 'attendance', 'role']);
+      
+      function isValidUser(data) {
+        return data.keys().hasAll(['uid', 'name', 'email', 'role'])
+          && data.uid is string && data.uid == request.auth.uid
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.email is string && data.email.size() <= 100
+          && data.role in ['student', 'faculty', 'admin'];
+      }
+
+      // AI Chat History
+      match /chats/{chatId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // 2. Attendance
+    match /attendance/{atId} {
+      allow get: if isSignedIn() && (isOwner(existing().userId) || isFaculty() || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isFaculty() || isAdmin());
+      allow create: if isVerified() && (isFaculty() || isAdmin()) && isValidAttendance(incoming());
+      allow update: if isVerified() && (isFaculty() || isAdmin()) && isValidAttendance(incoming());
+      allow delete: if isAdmin();
+
+      function isValidAttendance(data) {
+        return data.keys().hasAll(['userId', 'subjectId', 'date', 'status'])
+          && data.userId is string && data.userId.size() <= 128
+          && data.subjectId is string && data.subjectId.size() <= 128
+          && data.status in ['present', 'absent'];
+      }
+    }
+
+    // 3. Subjects
+    match /subjects/{subjId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (isAdmin() || isFaculty());
+    }
+
+    // 4. Timetables
+    match /timetables/{ttId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && isAdmin();
+    }
+
+    // 5. Leave Requests
+    match /leave_requests/{lrId} {
+      allow get: if isSignedIn() && (isOwner(existing().userId) || isFaculty() || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isFaculty() || isAdmin());
+      allow create: if isVerified() && isOwner(incoming().userId) && isValidLeave(incoming());
+      allow update: if isVerified() && (
+        (isOwner(existing().userId) && existing().status == 'pending' && isValidLeave(incoming())) ||
+        (isFaculty() && incoming().diff(existing()).affectedKeys().hasOnly(['status'])) ||
+        isAdmin()
+      );
+
+      function isValidLeave(data) {
+        return data.keys().hasAll(['userId', 'reason', 'startDate', 'endDate', 'status'])
+          && data.userId == request.auth.uid
+          && data.status == 'pending';
+      }
+    }
+
+    // 6. Announcements
+    match /announcements/{annId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (isAdmin() || isFaculty());
+    }
+
+    // 7. Materials
+    match /materials/{matId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && isFaculty();
+    }
+
+    // 8. Syllabus
+    match /syllabus/{sylId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (isAdmin() || isFaculty());
+    }
+  }
+}
